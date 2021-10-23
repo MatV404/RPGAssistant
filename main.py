@@ -5,6 +5,8 @@ from os import getenv
 from enum import Enum
 from dotenv import load_dotenv
 
+# ToDo: Think about separating this code for better readability.
+
 load_dotenv()
 TOKEN = getenv('DISCORD_TOKEN')
 intents = discord.Intents.default()
@@ -12,6 +14,7 @@ intents.all()
 intents.messages = True
 intents.members = True
 bot = commands.Bot(command_prefix='R!', intents=intents)
+
 
 class ChannelType(Enum):
     TEXT = 1
@@ -63,7 +66,7 @@ async def validate_role(message: discord.Message, role_name: str) -> bool:
     for role in message.author.roles:
         if role.name == role_name:
             return True
-    await message.channel.send("You do not have the Dungeon Master role required for this command.")
+    await message.channel.send(f"You do not have the {role_name} role required for this command.")
     return False
 
 
@@ -82,7 +85,7 @@ async def set_role_perms(channel: Union[discord.TextChannel, discord.VoiceChanne
     else:
         await channel.set_permissions(permissions_role,
                                       view_channel=True,
-                                      connect =True,
+                                      connect=True,
                                       speak=True,
                                       stream=True)
 
@@ -115,19 +118,14 @@ async def make_voice_channel(server, name: str,
 
 
 async def is_name_unique(message: discord.Message, channel_name: str) -> bool:
-    #ToDo: Remake asap
-    for category in message.guild.categories:
-        if category.name == channel_name:
-            message.channel.send("Error: a campaign by this name already exists.")
-            return False
-    return True
+    return discord.utils.get(message.guild.categories, name=channel_name) is None
 
 
 @bot.command()
 async def create_campaign(message, campaign_name) -> None:
     """Creates the category and all chat channels for a D&D Campaign.
     The message author is then promoted to the Campaign's Dungeon Master Role."""
-    if not validate_role(message, "Dungeon Master") or not is_name_unique(message, campaign_name):
+    if not await validate_role(message, "Dungeon Master") or not await is_name_unique(message, campaign_name):
         return None
 
     await message.channel.send(f"Creating {campaign_name} for {message.author.name}.")
@@ -156,13 +154,13 @@ async def create_campaign(message, campaign_name) -> None:
             await make_voice_channel(server, name, new_category, player_role, dm_role)
 
     await message.author.add_roles(dm_role)
-    await message.channel.send(f"The campaign {campaign_name} was succesfully created!")
+    await message.channel.send(f"The campaign {campaign_name} was successfully created!")
 
 
 @bot.command()
 async def delete_campaign(message: discord.Message, campaign_name: str) -> None:
     """Deletes the given campaign category, along with all the channels and roles."""
-    if not validate_role(message, f"{campaign_name} Dungeon Master"):
+    if not await validate_role(message, f"{campaign_name} Dungeon Master"):
         return None
 
     category = discord.utils.get(message.guild.categories, name=campaign_name)
@@ -197,6 +195,7 @@ async def create_player_channel(server: discord.Guild, parent_category: str,
     if current_category is None:
         return False
 
+    # ToDo: Refactor this line to not be as long.
     channel = await server.create_text_channel(f"{member.name} log",
                                                overwrites={server.default_role: discord.PermissionOverwrite(view_channel=False)})
     await channel.edit(category=current_category)
@@ -229,7 +228,14 @@ async def get_roles(message: discord.Message,
 @bot.command()
 async def add_player(message: discord.Message, campaign_name: str, player_name: str) -> None:
     """Adds a player into the given campaign."""
-    if not validate_role(message, f"{campaign_name} Dungeon Master"):
+    server = message.guild
+    if server is None:
+        await message.channel.send(f"Something went wrong while trying to add the player. :/")
+        return None
+    # ToDo: Fix the typing issues with server
+    assert server is not None
+
+    if not await validate_role(message, f"{campaign_name} Dungeon Master"):
         return None
 
     await message.channel.send(f"Adding {player_name} to {campaign_name}.")
@@ -239,68 +245,79 @@ async def add_player(message: discord.Message, campaign_name: str, player_name: 
         await message.channel.send("Error: No DM or Player Role for the given Campaign Exists!")
         return None
 
-    #ToDo: Remake this
-    for member in message.guild.members:
-        if f"{member.name}#{member.discriminator}" == player_name:
-            await member.add_roles(player_role)
+    name_parts = player_name.split("#")
+    if len(name_parts) == 1:
+        await message.channel.send(f"Please, ensure the player's name is in a format of NAME#NUMBER.")
+        return None
 
-            await message.channel.send(f"Creating log channel.")
-            result = await create_player_channel(message.guild, campaign_name, member, dm_role)
+    player = discord.utils.get(server.members, name=name_parts[0], discriminator=name_parts[1])
+    if player is None:
+        await message.channel.send(f"Error: No player called {player_name} found!")
+        return None
 
-            if not result:
-                await message.channel.send("Error: The Campaign Category does not exist!")
+    await message.channel.send("Creating the player's log channel.")
+    if not await create_player_channel(server, campaign_name, player, dm_role):
+        await message.channel.send("Something went wrong while creating the player channel.")
+        return None
 
-            await message.channel.send("Player added successfully!")
-            return None
-
-    await message.channel.send("Error: No such member exists!")
+    await message.channel.send("Player added successfully!")
 
 
-async def delete_player_channel(server: discord.Guild, campaign_name: str, member: str) -> bool:
+async def delete_player_channel(server: discord.Guild, campaign_name: str, player_name: str) -> bool:
     """Deletes a given campaign player's log channel."""
-    current_category = None
+    current_category = discord.utils.get(server.categories, name=campaign_name)
+    channel_to_delete = discord.utils.get(current_category, name=f"{player_name.lower()}-log")
 
-    for category in server.categories:
-        if category.name == campaign_name:
-            current_category = category
-
-    if current_category is None:
+    if current_category is None or channel_to_delete is None:
         return False
-    
-    for channel in current_category.channels:
-        if channel.name == f"{member.name.lower()}-log":
-            await channel.delete()
-            return True
-    return False
+
+    await channel_to_delete.delete()
+    return True
 
 
 @bot.command()
 async def remove_player(message: discord.Message, campaign_name: str, player_name: str) -> None:
     """Removes a given player from the campaign."""
-    if not validate_role(message, f"{campaign_name} Dungeon Master"):
+    if not await validate_role(message, f"{campaign_name} Dungeon Master"):
         return None
 
     await message.channel.send(f"Removing {player_name} from {campaign_name}.")
 
-    for member in message.guild.members:
-        if f"{member.name}#{member.discriminator}" == player_name:
-            for role in message.guild.roles:
-                if role.name == f"{campaign_name} Player":
-                    await member.remove_roles(role)
-                    result = await delete_player_channel(message.guild, campaign_name, member)
-                    if not result:
-                        await message.channel.send("Error: The Category or Channel for the player does not exist.")
-                        return None
-                    await message.channel.send("Player removed successfully!")
-                    return None
-            await message.channel.send("Error: No such role exists!")
-            return None
-    await message.channel.send("Error: No such member exists!")
+    name_parts = player_name.split("#")
+    if len(name_parts) == 1:
+        await message.channel.send(f"Please, ensure the player's name is in a format of NAME#NUMBER.")
+        return None
+
+    server = message.guild
+    if server is None:
+        await message.channel.send(f"Something went wrong while trying to remove the player. :/")
+        return None
+    # ToDo: Figure out the typing for this poor boy.
+    assert server is not None
+
+    player = discord.utils.get(message.guild.members, name=name_parts[0], discriminator=name_parts[1])
+    if player is None:
+        await message.channel.send(f"Error: No player called {player_name} found!")
+        return None
+
+    player_role = discord.utils.get(player.roles, name=f"{campaign_name} Player")
+    if player_role is None:
+        await message.channel.send(f"Error: The player doesn't have the required {campaign_name} Player role.")
+        return None
+
+    await player.remove_roles(player_role)
+
+    if not await delete_player_channel(server, campaign_name, player.name):
+        await message.channel.send(f"Error: The Category {campaign_name} or "
+                                   f"Log Channel {player_name.lower()}-log do not exist.")
+        return None
+
+    await message.channel.send(f"Player {player_name} successfully removed from {campaign_name}.")
 
 
 @bot.command()
 async def commands(message: discord.Message) -> None:
-    #ToDO: Look into embeds to make this message look amazing. Right now it's quite meh.
+    # ToDo: Look into embeds to make this message look amazing. Right now it's quite meh.
     await message.channel.send("Here are all my commands!"
                                "\n+ `R!create_campaign` <Campaign Name> => Creates a new Campaign Category for your"
                                "D&D campaign!"
