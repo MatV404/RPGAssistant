@@ -1,6 +1,6 @@
 import discord
 from enum import Enum
-from typing import Union, List
+from typing import Union, List, Tuple, Optional
 
 
 class ChannelType(Enum):
@@ -10,7 +10,7 @@ class ChannelType(Enum):
 
 CanRead = bool
 CanWrite = bool
-Channels = list[tuple[str, ChannelType, CanRead, CanWrite]]
+Channels = List[Tuple[str, ChannelType, CanRead, CanWrite]]
 
 CAMPAIGN_CHANNELS: Channels = [("campaign-chronicle", ChannelType.TEXT, True, False),
                                ("campaign-general", ChannelType.TEXT, True, True),
@@ -149,3 +149,24 @@ async def delete(message: discord.Message, campaign_name: str) -> None:
     await player_role.delete()
     await dm_role.delete()
     await message.channel.send(f"Campaign {campaign_name} deleted successfully!")
+
+
+async def rename(message: discord.Message, campaign_name: str, new_name: str) -> None:
+    server = message.guild
+    campaign_category = discord.utils.get(server.channels, name=campaign_name)
+    if campaign_category is None:
+        await message.channel.send(f"A campaign category by the name of {campaign_name} was not found.")
+        return None
+
+    player_role = discord.utils.get(server.roles, name=f"{campaign_name} Player")
+    dungeon_master_role = discord.utils.get(server.roles, name=f"{campaign_name} Dungeon Master")
+
+    if player_role is None or dungeon_master_role is None:
+        await message.channel.send(f"A Player or Dungeon Master role for {campaign_name} does not exist.")
+        return None
+
+    await campaign_category.edit(name = new_name)
+    await player_role.edit(name = f"{new_name} Player")
+    await dungeon_master_role.edit(name = f"{new_name} Dungeon Master")
+
+    await message.channel.send(f"{campaign_name} was successfully renamed to {new_name}.")

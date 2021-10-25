@@ -1,6 +1,5 @@
 import discord
 from discord.ext import commands
-from typing import Union, Optional
 from os import getenv
 from dotenv import load_dotenv
 import campaign_management
@@ -51,6 +50,14 @@ async def delete_campaign(message: discord.Message, campaign_name: str) -> None:
 
 
 @bot.command()
+async def rename_campaign(message: discord.Message, campaign_name: str, new_name: str) -> None:
+    if not await validate_role(message, f"{campaign_name} Dungeon Master"):
+        return None
+
+    await campaign_management.rename(message, campaign_name, new_name)
+
+
+@bot.command()
 async def add_player(message: discord.Message, campaign_name: str, player_name: str) -> None:
     """Adds a player into the given campaign."""
     server = message.guild
@@ -81,13 +88,17 @@ async def remove_player(message: discord.Message, campaign_name: str, player_nam
 @bot.command()
 async def commands(message: discord.Message) -> None:
     # ToDo: Look into embeds to make this message look amazing. Right now it's quite meh.
-    await message.channel.send("Here are all my commands!"
-                               "\n+ `R!create_campaign` <Campaign Name> => Creates a new Campaign Category for your"
+    await message.channel.send("Here are all my commands!\n"
+                               "Please note that if you want to use a campaign name that is more than two words,"
+                               "you need to use quotes (\"\") around it."
+                               "\n~> `R!create_campaign` \"<Campaign Name>\" => Creates a new Campaign Category for your"
                                "D&D campaign!"
-                               "\n+ `R!delete_campaign` <Campaign Name> => Deletes the given Campaign Category."
-                               "\n+ `R!add_player` <Campaign Name> <DiscordUser#Number> => Adds a Player to your "
+                               "\n~> `R!delete_campaign` \"<Campaign Name>\" => Deletes the given Campaign Category."
+                               "\n~> `R!rename_campaign` \"<Campaign Name>\" \"<New Name>\" => Renames the given "
+                               "Campaign Category and its roles."
+                               "\n~> `R!add_player` \"<Campaign Name>\" <DiscordUser#Number> => Adds a Player to your "
                                "Campaign."
-                               "\n+ `R!remove_player` <Campaign Name> <DiscordUser#Number> "
+                               "\n~> `R!remove_player` \"<Campaign Name>\" <DiscordUser#Number> "
                                "=> Removes a Player from your Campaign.")
 
 
