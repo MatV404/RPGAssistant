@@ -4,6 +4,7 @@ from os import getenv
 from dotenv import load_dotenv
 import campaign_management
 import player_management
+import role_management
 
 # ToDo: Think about separating this code for better readability.
 
@@ -51,7 +52,8 @@ async def delete_campaign(message: discord.Message, campaign_name: str) -> None:
 
 @bot.command()
 async def rename_campaign(message: discord.Message, campaign_name: str, new_name: str) -> None:
-    if not await validate_role(message, f"{campaign_name} Dungeon Master"):
+    if not await validate_role(message, f"{campaign_name} Dungeon Master") \
+            or not await is_name_unique(message, new_name):
         return None
 
     await campaign_management.rename(message, campaign_name, new_name)
@@ -83,6 +85,23 @@ async def remove_player(message: discord.Message, campaign_name: str, player_nam
         return None
 
     await player_management.remove_from_campaign(server, campaign_name, player_name, message.channel)
+
+
+@bot.command()
+async def set_role_colour(message: discord.Message, role: discord.Role, new_colour_str: str):
+    if not await validate_role(message, "Dungeon Master"):
+        return None
+
+    # ToDo: Rethink this. Don't like this.
+    try:
+        new_colour = int(new_colour_str, 16)
+    except:
+        await message.channel.send("Invalid color code! Remember to use a hex color code without the leading #.")
+        return None
+
+    colour = discord.Colour(new_colour)
+
+    await role_management.set_colour(role, colour)
 
 
 @bot.command()

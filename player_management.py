@@ -56,7 +56,7 @@ async def add_to_campaign(server: discord.Guild, campaign_name: str, player_name
         await channel.send("Something went wrong while creating the player channel.")
         return None
 
-    player.add_roles(player_role)
+    await player.add_roles(player_role)
     await channel.send("Player added successfully!")
 
 

@@ -142,7 +142,7 @@ async def delete(message: discord.Message, campaign_name: str) -> None:
 
     player_role = discord.utils.get(message.guild.roles, name=f"{campaign_name} Player")
     dm_role = discord.utils.get(message.guild.roles, name=f"{campaign_name} Dungeon Master")
-
+    # ToDo: Think about adding try ... except to blocks similar to these.
     await message.channel.send("Deleting the category.")
     await category.delete()
     await message.channel.send("Deleting player and dungeon master roles.")
@@ -152,7 +152,13 @@ async def delete(message: discord.Message, campaign_name: str) -> None:
 
 
 async def rename(message: discord.Message, campaign_name: str, new_name: str) -> None:
+    """Renames the given campaign category and its roles."""
     server = message.guild
+
+    if server is None:
+        await message.channel.send("Something went wrong while trying to rename the campaign category.")
+        return None
+
     campaign_category = discord.utils.get(server.channels, name=campaign_name)
     if campaign_category is None:
         await message.channel.send(f"A campaign category by the name of {campaign_name} was not found.")
