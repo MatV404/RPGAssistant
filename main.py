@@ -106,21 +106,46 @@ async def set_role_colour(message: discord.Message, role: discord.Role, new_colo
 
 @bot.command()
 async def commands(message: discord.Message) -> None:
-    # ToDo: Look into embeds to make this message look amazing. Right now it's quite meh.
-    await message.channel.send("Here are all my commands!\n"
-                               "Please note that if you want to use a campaign name that is more than two words,"
-                               "you need to use quotes (\"\") around it."
-                               "\n~> `R!create_campaign` \"<Campaign Name>\" => Creates a new Campaign Category for your"
-                               "D&D campaign!"
-                               "\n~> `R!delete_campaign` \"<Campaign Name>\" => Deletes the given Campaign Category."
-                               "\n~> `R!rename_campaign` \"<Campaign Name>\" \"<New Name>\" => Renames the given "
-                               "Campaign Category and its roles."
-                               "\n~> `R!add_player` \"<Campaign Name>\" <DiscordUser#Number> => Adds a Player to your "
-                               "Campaign."
-                               "\n~> `R!remove_player` \"<Campaign Name>\" <DiscordUser#Number> "
-                               "=> Removes a Player from your Campaign."
-                               "\n~> `R!set_role_colour @<role> <hex_code> => Sets the mentioned role's colour to "
-                               "<hex code>, be sure to leave out the leading # before the hex code!")
+    # ToDo: Fix the Emoji, it doesn't get the proper emoji. :( -> utils.get only gets custom emoji
+    emoji = discord.utils.get(message.guild.emojis, name=":diamonds:")
+    embedded_message = discord.Embed(
+        title="RPG Assistant's Command List",
+        description="Here are all the commands available for RPG Assistant.",
+        colour=discord.Colour.dark_red())
+    embedded_message.add_field(name=f"{emoji} R!create_campaign \"<Campaign Name>\"",
+                               value="Creates a new campaign category for your D&D campaign, complete "
+                                     "with Player and DM roles as well as all necessary channels.",
+                               inline=False)
+
+    embedded_message.add_field(name=f"{emoji} R!delete_campaign \"<Campaign Name>\"",
+                               value="Deletes a given campaign category, all of its channels, as well as the Player"
+                                     "and DM roles.",
+                               inline=False)
+
+    embedded_message.add_field(name=f"{emoji} R!rename_campaign \"<Campaign Name>\" \"<New Name>\"",
+                               value="Renames the given Campaign Category and its Player and DM roles accordingly.",
+                               inline=False)
+
+    embedded_message.add_field(name=f"{emoji} R!add_player \"<Campaign Name>\" <DiscordUser#Number>",
+                               value="Adds a player to your campaign, creating their log channel as well.",
+                               inline=False)
+
+    embedded_message.add_field(name=f"{emoji} R!remove_player \"<Campaign Name>\" <DiscordUser#Number>",
+                               value="Removes a player from your campaign, deleting their log channel as well.",
+                               inline=False)
+
+    embedded_message.add_field(name=f"{emoji} R!set_role_colour @<role> <hex_code>",
+                               value="Sets the mentioned role's colour to <hex code>, be sure to leave out the"
+                                     "leading # before the hex code!",
+                               inline=False)
+
+    embedded_message.add_field(name=f"{emoji} R!commands",
+                               value="Displays this useful message!",
+                               inline=False)
+
+    embedded_message.set_footer(text="And more to come.")
+
+    await message.channel.send(embed=embedded_message)
 
 
 @bot.event
