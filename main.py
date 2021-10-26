@@ -118,7 +118,9 @@ async def commands(message: discord.Message) -> None:
                                "\n~> `R!add_player` \"<Campaign Name>\" <DiscordUser#Number> => Adds a Player to your "
                                "Campaign."
                                "\n~> `R!remove_player` \"<Campaign Name>\" <DiscordUser#Number> "
-                               "=> Removes a Player from your Campaign.")
+                               "=> Removes a Player from your Campaign."
+                               "\n~> `R!set_role_colour @<role> <hex_code> => Sets the mentioned role's colour to "
+                               "<hex code>, be sure to leave out the leading # before the hex code!")
 
 
 @bot.event
