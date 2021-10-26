@@ -46,6 +46,7 @@ DM_PERMS = discord.Permissions(read_messages=True,
                                move_members=True,
                                deafen_members=True)
 
+
 async def set_role_perms(channel: Union[discord.TextChannel, discord.VoiceChannel],
                          permissions_role: discord.Role, is_voice: bool,
                          send_privilege: bool, read_privilege: bool) -> None:
@@ -64,6 +65,7 @@ async def set_role_perms(channel: Union[discord.TextChannel, discord.VoiceChanne
                                       connect=True,
                                       speak=True,
                                       stream=True)
+
 
 async def make_text_channel(server: discord.Guild, name: str,
                             parent_category: discord.CategoryChannel,
