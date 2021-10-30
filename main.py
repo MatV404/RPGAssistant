@@ -4,7 +4,7 @@ from os import getenv
 from dotenv import load_dotenv
 from campaign_management import create_campaign, delete_campaign, rename_campaign
 from player_management import bulk_add_players, bulk_remove_players
-from role_management import set_role_colour
+from role_management import set_role_colour, send_role_dm
 
 load_dotenv()
 TOKEN = getenv('DISCORD_TOKEN')
@@ -26,7 +26,11 @@ async def validate_role(message: discord.Message, role_name: str) -> bool:
 
 
 async def is_name_unique(message: discord.Message, channel_name: str) -> bool:
-    return discord.utils.get(message.guild.categories, name=channel_name) is None
+    # Todo: Consider how to improve this.
+    for category in message.guild.categories:
+        if channel_name.lower() == category.name.lower():
+            return True
+    return False
 
 
 @bot.command()
@@ -108,6 +112,14 @@ async def role_colour(message: discord.Message, role: discord.Role, new_colour_s
 
 
 @bot.command()
+async def role_send_message(message: discord.Message, role: discord.Role, to_send: str) -> None:
+    if not await validate_role(message, "Dungeon Master"):
+        return None
+
+    await send_role_dm(role, to_send)
+
+
+@bot.command()
 async def commands(message: discord.Message) -> None:
     # ToDo: Fix the Emoji, it doesn't get the proper emoji. :( -> utils.get only gets custom emoji
     emoji = "♦"
@@ -142,6 +154,10 @@ async def commands(message: discord.Message) -> None:
     embedded_message.add_field(name=f"{emoji} R!role_colour @<role> <hex_code>",
                                value="Sets the mentioned role's colour to <hex code>, be sure to leave out the "
                                      "leading # before the hex code!",
+                               inline=False)
+
+    embedded_message.add_field(name=f"{emoji} R!role_send_message @<role> \"<message>\"",
+                               value="Sends <message> to all users with @<role>. Use with caution!!!",
                                inline=False)
 
     embedded_message.add_field(name=f"{emoji} R!commands",
