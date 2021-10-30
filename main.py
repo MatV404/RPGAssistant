@@ -13,6 +13,8 @@ intents.all()
 intents.messages = True
 intents.members = True
 bot = commands.Bot(command_prefix='R!', intents=intents)
+#ToDo: More testing!
+#ToDo: Create a logging system.
 
 
 async def validate_role(message: discord.Message, role_name: str) -> bool:
@@ -113,15 +115,24 @@ async def role_colour(message: discord.Message, role: discord.Role, new_colour_s
 
 @bot.command()
 async def role_send_message(message: discord.Message, role: discord.Role, to_send: str) -> None:
+    """Sends a private message to each member of a given role. Does not work for @everyone."""
+    server = message.guild
+    if server is None:
+        await message.channel.send("Something went wrong while trying to send the message.")
+        return None
+
     if not await validate_role(message, "Dungeon Master"):
         return None
 
-    await send_role_dm(role, to_send)
+    if role == message.guild.default_role:
+        await message.channel.send("Nope. I won't message EVERYONE in the server! >:-|")
+        return None
+
+    await send_role_dm(server, message.author, role, to_send)
 
 
 @bot.command()
 async def commands(message: discord.Message) -> None:
-    # ToDo: Fix the Emoji, it doesn't get the proper emoji. :( -> utils.get only gets custom emoji
     emoji = "♦"
     embedded_message = discord.Embed(
         title="RPG Assistant's Command List",
