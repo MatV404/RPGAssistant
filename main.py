@@ -31,8 +31,8 @@ async def is_name_unique(message: discord.Message, channel_name: str) -> bool:
     # Todo: Consider how to improve this.
     for category in message.guild.categories:
         if channel_name.lower() == category.name.lower():
-            return True
-    return False
+            return False
+    return True
 
 
 @bot.command()
